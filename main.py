@@ -695,12 +695,28 @@ def generate_m3u(sorted_channels, output_path):
     logger.info(f"M3U文件生成完成: {output_path}, 共 {len(sorted_channels)} 个频道")
     return output_path
 
+def normalize_referrer(value):
+    """Add a missing scheme to http-referrer, e.g. salamtelevisi.com -> https://salamtelevisi.com/"""
+    value = (value or '').strip()
+    if not value:
+        return value
+    if value.startswith('//'):
+        value = 'https:' + value
+    elif not re.match(r'^[a-zA-Z][a-zA-Z0-9+.-]*://', value):
+        value = 'https://' + value
+    # Bare host with no path: add a trailing slash
+    if re.match(r'^https?://[^/?#]+$', value):
+        value += '/'
+    return value
+
 def build_extinf(info):
     """构建EXTINF行"""
     attrs = []
     
     for key, value in info.items():
         if key != 'title':
+            if key == 'http-referrer':
+                value = normalize_referrer(value)
             attrs.append(f'{key}="{value}"')
     
     attrs_str = ' '.join(attrs)
